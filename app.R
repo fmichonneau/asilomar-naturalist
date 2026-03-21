@@ -228,14 +228,15 @@ server <- function(input, output, session) {
         arrange(desc(observed_on))
 
       # Observation photo gallery (up to 6 non-NA image_urls)
-      obs_photos <- obs |>
+      obs_with_photos <- obs |>
         filter(!is.na(image_url) & nchar(image_url) > 0) |>
-        slice_head(n = 6) |>
-        pull(image_url)
+        slice_head(n = 6)
 
-      gallery <- if (length(obs_photos) > 0) {
-        photo_tags <- lapply(obs_photos, function(src) {
-          tags$img(
+      gallery <- if (nrow(obs_with_photos) > 0) {
+        photo_tags <- lapply(seq_len(nrow(obs_with_photos)), function(j) {
+          src <- obs_with_photos$image_url[j]
+          obs_url <- obs_with_photos$url[j]
+          img <- tags$img(
             src = src,
             style = paste0(
               "width:150px; height:120px; object-fit:cover;",
@@ -243,6 +244,17 @@ server <- function(input, output, session) {
             ),
             alt = ""
           )
+          if (!is.na(obs_url) && nchar(obs_url) > 0) {
+            tags$a(
+              href = obs_url,
+              target = "_blank",
+              title = "View observation on iNaturalist",
+              style = "display:inline-block; flex-shrink:0;",
+              img
+            )
+          } else {
+            img
+          }
         })
         tags$div(
           style = paste0(
@@ -517,10 +529,15 @@ server <- function(input, output, session) {
       count_fmt <- format(row$count, big.mark = ",")
 
       # Thumbnail or placeholder
+      show_detail_js <- sprintf(
+        "Shiny.setInputValue('show_detail', %s, {priority: 'event'})",
+        row$taxon_id
+      )
+
       img_tag <- if (!is.na(photo_url)) {
-        tags$a(
-          href = inat_url,
-          target = "_blank",
+        tags$div(
+          style = "cursor:pointer;",
+          onclick = show_detail_js,
           tags$img(
             src = photo_url,
             style = "width:100%; height:150px; object-fit:cover; border-radius:4px 4px 0 0;",
@@ -531,8 +548,10 @@ server <- function(input, output, session) {
         tags$div(
           style = paste0(
             "width:100%; height:150px; background:#e9ecef; border-radius:4px 4px 0 0;",
-            "display:flex; align-items:center; justify-content:center; color:#adb5bd;"
+            "display:flex; align-items:center; justify-content:center; color:#adb5bd;",
+            "cursor:pointer;"
           ),
+          onclick = show_detail_js,
           "No image"
         )
       }
@@ -543,10 +562,9 @@ server <- function(input, output, session) {
         img_tag,
         card_body(
           style = "padding: 10px;",
-          tags$a(
-            href = inat_url,
-            target = "_blank",
-            style = "font-weight:600; color: inherit; text-decoration: none;",
+          tags$span(
+            style = "font-weight:600; cursor:pointer;",
+            onclick = show_detail_js,
             row$common_name %||% row$scientific_name
           ),
           tags$br(),
@@ -554,14 +572,17 @@ server <- function(input, output, session) {
             style = "color:#6c757d; font-size:0.85em;",
             row$scientific_name
           ),
+          tags$a(
+            href = inat_url,
+            target = "_blank",
+            style = "font-size:0.78em; color:#6c757d; text-decoration:none;",
+            "iNaturalist \u2197"
+          ),
           tags$br(),
           tags$span(
             class = "badge bg-secondary mt-1",
             style = "cursor:pointer;",
-            onclick = sprintf(
-              "Shiny.setInputValue('show_detail', %s, {priority: 'event'})",
-              row$taxon_id
-            ),
+            onclick = show_detail_js,
             paste0(count_fmt, " observations")
           )
         )
