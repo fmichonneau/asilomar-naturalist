@@ -94,6 +94,43 @@ fetch_taxon_info <- function(taxon_id) {
       } else {
         NA_character_
       }
+      # Fallback: if no taxon thumbnail, try the observations API
+      if (is.na(photo_url)) {
+        cli::cli_alert_info(paste0(
+          "No taxon photo for ",
+          taxon_id,
+          ", trying observations..."
+        ))
+        obs_resp <- tryCatch(
+          request("https://api.inaturalist.org/v1/observations") |>
+            req_url_query(
+              taxon_id = taxon_id,
+              photos = "true",
+              quality_grade = "research",
+              order_by = "votes",
+              per_page = 1L
+            ) |>
+            req_timeout(10) |>
+            req_perform(),
+          error = function(e) NULL
+        )
+        if (!is.null(obs_resp)) {
+          obs_body <- resp_body_json(obs_resp)
+          obs_photo <- tryCatch(
+            obs_body$results[[1]]$photos[[1]]$url,
+            error = function(e) NULL
+          )
+          if (!is.null(obs_photo)) {
+            # iNat observation photo URLs use "square" size; upgrade to "medium"
+            photo_url <- sub("/square\\.", "/medium.", obs_photo)
+            cli::cli_alert_success(paste0(
+              "Got observation photo for taxon_id ",
+              taxon_id
+            ))
+          }
+        }
+      }
+
       wikipedia_url <- taxon$wikipedia_url %||% NA_character_
       list(photo_url = photo_url, wikipedia_url = wikipedia_url)
     },
