@@ -263,11 +263,37 @@ server <- function(input, output, session) {
       obs_yday <- as.integer(format(obs$observed_on, "%j"))
       obs_yday <- obs_yday[!is.na(obs_yday)]
 
+      # Effort-corrected relative frequency (week resolution)
+      today_week <- as.integer(format(Sys.Date(), "%V"))
+
+      effort <- combined_data |>
+        mutate(week = as.integer(format(observed_on, "%V"))) |>
+        count(week, name = "total_obs")
+
+      rel_freq_df <- if (length(obs_yday) >= 2) {
+        data.frame(
+          week = as.integer(format(
+            obs$observed_on[!is.na(obs$observed_on)],
+            "%V"
+          ))
+        ) |>
+          count(week, name = "n") |>
+          left_join(effort, by = "week") |>
+          mutate(relative_freq = n / total_obs)
+      } else {
+        NULL
+      }
+
       density_plot <- if (length(obs_yday) >= 2) {
         renderPlot(
           {
             ggplot(data.frame(yday = obs_yday), aes(x = yday)) +
-              geom_density(fill = "#2c7fb8", alpha = 0.4, color = "#2c7fb8") +
+              geom_density(
+                aes(y = after_stat(ndensity)),
+                fill = "#2c7fb8",
+                alpha = 0.4,
+                color = "#2c7fb8"
+              ) +
               geom_rug(alpha = 0.3, color = "#2c7fb8") +
               geom_vline(
                 xintercept = today_yday,
@@ -305,8 +331,8 @@ server <- function(input, output, session) {
               ) +
               labs(
                 x = NULL,
-                y = "Observation density",
-                title = "Seasonal pattern of observations"
+                y = "Relative density",
+                title = "Raw seasonal pattern"
               ) +
               theme_minimal(base_size = 12) +
               theme(panel.grid.minor = element_blank())
@@ -326,7 +352,67 @@ server <- function(input, output, session) {
         })
       }
 
+      rel_freq_plot <- if (!is.null(rel_freq_df)) {
+        renderPlot(
+          {
+            ggplot(rel_freq_df, aes(x = week, y = relative_freq)) +
+              geom_col(fill = "#2c7fb8", alpha = 0.5, width = 0.8) +
+              geom_smooth(
+                se = FALSE,
+                color = "#2c7fb8",
+                linewidth = 1,
+                method = "loess",
+                formula = y ~ x
+              ) +
+              geom_vline(
+                xintercept = today_week,
+                color = "#e63946",
+                linewidth = 1,
+                linetype = "dashed"
+              ) +
+              annotate(
+                "text",
+                x = today_week,
+                y = Inf,
+                label = "Today",
+                vjust = 1.5,
+                hjust = if (today_week > 45) 1.1 else -0.1,
+                color = "#e63946",
+                size = 3.5
+              ) +
+              scale_x_continuous(
+                limits = c(1, 53),
+                breaks = c(1, 5, 9, 14, 18, 22, 27, 31, 35, 40, 44, 48),
+                labels = month.abb
+              ) +
+              scale_y_continuous(
+                labels = scales::percent_format(accuracy = 0.1)
+              ) +
+              labs(
+                x = NULL,
+                y = "% of all obs. that week",
+                title = "Effort-corrected frequency"
+              ) +
+              theme_minimal(base_size = 12) +
+              theme(panel.grid.minor = element_blank())
+          },
+          res = 120
+        )
+      } else {
+        renderPlot({
+          ggplot() +
+            annotate(
+              "text",
+              x = 0.5,
+              y = 0.5,
+              label = "Not enough data"
+            ) +
+            theme_void()
+        })
+      }
+
       output$modal_density <- density_plot
+      output$modal_rel_freq <- rel_freq_plot
 
       # Wikipedia link
       wiki_url <- fetch_taxon_wiki(row$taxon_id)
@@ -385,7 +471,17 @@ server <- function(input, output, session) {
         gallery,
         wiki_link,
         h6("Seasonal pattern"),
-        plotOutput("modal_density", height = "200px"),
+        tags$div(
+          style = "display:flex; gap:12px;",
+          tags$div(
+            style = "flex:1;",
+            plotOutput("modal_density", height = "200px")
+          ),
+          tags$div(
+            style = "flex:1;",
+            plotOutput("modal_rel_freq", height = "200px")
+          )
+        ),
         h6(
           style = "margin-top:16px;",
           paste0("Observations (", format(row$count, big.mark = ","), " total)")
