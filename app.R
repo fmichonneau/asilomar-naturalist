@@ -36,20 +36,21 @@ group_labels <- c(
   "Mammalia" = "Mammals (Mammalia)"
 )
 
-# All raw group values present in our top 100
-raw_groups <- sort(unique(top100$iconic_taxon_name))
+# Count taxa per group, ordered descending
+group_counts <- top100 |>
+  count(iconic_taxon_name, name = "n_taxa") |>
+  arrange(desc(n_taxa))
 
-# Named vector: friendly label â raw value (for checkboxGroupInput)
+# Named vector: friendly label -> raw value (for checkboxGroupInput)
+# ordered by descending taxa count, with count in label
 choices_named <- setNames(
-  raw_groups,
+  group_counts$iconic_taxon_name,
   vapply(
-    raw_groups,
+    group_counts$iconic_taxon_name,
     function(g) {
-      if (!is.na(group_labels[g])) {
-        group_labels[[g]]
-      } else {
-        paste0(g, " (", g, ")")
-      }
+      n <- group_counts$n_taxa[group_counts$iconic_taxon_name == g]
+      label <- if (!is.na(group_labels[g])) group_labels[[g]] else g
+      paste0(label, " (", n, ")")
     },
     character(1)
   )
