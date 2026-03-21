@@ -58,17 +58,21 @@ choices_named <- setNames(
 # ââ Image cache (disk, survives restarts) âââââââââââââââââââââââââââââââââââââ
 
 img_cache <- cachem::cache_disk("image_cache")
+wiki_cache <- cachem::cache_disk("wiki_cache")
 
-fetch_taxon_photo <- function(taxon_id) {
+fetch_taxon_info <- function(taxon_id) {
   cli::cli_alert_info(paste0("Fetching image for taxon_id ", taxon_id, " ..."))
   key <- as.character(taxon_id)
-  cached <- img_cache$get(key)
-  if (!is.key_missing(cached)) {
+
+  img_cached <- img_cache$get(key)
+  wiki_cached <- wiki_cache$get(key)
+
+  if (!is.key_missing(img_cached) && !is.key_missing(wiki_cached)) {
     cli::cli_alert_success(paste0("Cache hit for taxon_id ", taxon_id))
-    return(cached)
+    return(list(photo_url = img_cached, wikipedia_url = wiki_cached))
   }
 
-  url <- tryCatch(
+  result <- tryCatch(
     {
       resp <- request(paste0(
         "https://api.inaturalist.org/v1/taxa/",
@@ -79,23 +83,36 @@ fetch_taxon_photo <- function(taxon_id) {
       body <- resp_body_json(resp)
       cli::cli_alert_success(paste0("Fetched image for taxon_id ", taxon_id))
       if (length(body$results) == 0) {
-        return(NA_character_)
+        return(list(photo_url = NA_character_, wikipedia_url = NA_character_))
       }
-      result <- body$results[[1]]
-      photo <- result$default_photo
-      if (!is.null(photo$medium_url)) {
+      taxon <- body$results[[1]]
+      photo <- taxon$default_photo
+      photo_url <- if (!is.null(photo$medium_url)) {
         photo$medium_url
       } else if (!is.null(photo$square_url)) {
         photo$square_url
       } else {
         NA_character_
       }
+      wikipedia_url <- taxon$wikipedia_url %||% NA_character_
+      list(photo_url = photo_url, wikipedia_url = wikipedia_url)
     },
-    error = function(e) NA_character_
+    error = function(e) {
+      list(photo_url = NA_character_, wikipedia_url = NA_character_)
+    }
   )
 
-  img_cache$set(key, url)
-  url
+  img_cache$set(key, result$photo_url)
+  wiki_cache$set(key, result$wikipedia_url)
+  result
+}
+
+fetch_taxon_photo <- function(taxon_id) {
+  fetch_taxon_info(taxon_id)$photo_url
+}
+
+fetch_taxon_wiki <- function(taxon_id) {
+  fetch_taxon_info(taxon_id)$wikipedia_url
 }
 
 # Pre-fetch all image URLs at startup
@@ -275,13 +292,9 @@ server <- function(input, output, session) {
       output$modal_density <- density_plot
 
       # Wikipedia link
-      wiki_url <- obs |>
-        filter(!is.na(wikipedia_url) & nchar(wikipedia_url) > 0) |>
-        pull(wikipedia_url) |>
-        unique() |>
-        dplyr::first()
+      wiki_url <- fetch_taxon_wiki(row$taxon_id)
 
-      wiki_link <- if (!is.na(wiki_url) && length(wiki_url) > 0) {
+      wiki_link <- if (!is.na(wiki_url) && nchar(wiki_url) > 0) {
         tags$p(
           tags$a(
             href = wiki_url,
