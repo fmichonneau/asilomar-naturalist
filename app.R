@@ -110,7 +110,7 @@ fetch_taxon_info <- function(taxon_id) {
       ))
       if (length(body$results) == 0) {
         return(list(
-          photo_url = NA_character_
+          photo_url = NA_character_,
           wikipedia_url = NA_character_
         ))
       }
