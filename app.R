@@ -9,7 +9,8 @@ library(ggplot2)
 # ââ Data prep (runs once at startup) âââââââââââââââââââââââââââââââââââââââââ
 
 combined_data <- nanoparquet::read_parquet("combined_mry_data.parquet") |>
-  mutate(observed_on = as.Date(observed_on))
+  mutate(observed_on = as.Date(observed_on)) |>
+  filter(nzchar(iconic_taxon_name))
 
 taxa_table <- combined_data |>
   select(scientific_name, taxon_id, common_name, iconic_taxon_name) |>
@@ -231,7 +232,7 @@ server <- function(input, output, session) {
       # Observation photo gallery (up to 6 non-NA image_urls)
       obs_with_photos <- obs |>
         filter(!is.na(image_url) & nchar(image_url) > 0) |>
-        slice_head(n = 6)
+        slice_head(n = 12)
 
       gallery <- if (nrow(obs_with_photos) > 0) {
         photo_tags <- lapply(seq_len(nrow(obs_with_photos)), function(j) {
