@@ -171,7 +171,11 @@ fetch_taxon_info <- function(taxon_id) {
 
 # Pre-fetch all image URLs at startup
 message("Fetching taxon images (cached after first run)...")
-top100$photo_url <- lapply(top100$taxon_id, fetch_taxon_info)
+top100$photo_url <- vapply(
+  top100$taxon_id,
+  function(id) fetch_taxon_info(id)$photo_url,
+  character(1)
+)
 message("Images ready.")
 
 # ââ UI ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
@@ -444,7 +448,7 @@ server <- function(input, output, session) {
       output$modal_rel_freq <- rel_freq_plot
 
       # Wikipedia link
-      wiki_url <- fetch_taxon_wiki(row$taxon_id)
+      wiki_url <- fetch_taxon_info(row$taxon_id)$wikipedia_url
 
       wiki_link <- if (!is.na(wiki_url) && nchar(wiki_url) > 0) {
         tags$p(
