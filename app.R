@@ -524,74 +524,87 @@ server <- function(input, output, session) {
       return(p("No species match the selected filters."))
     }
 
-    cards <- lapply(seq_len(nrow(df)), function(i) {
-      row <- df[i, ]
-      inat_url <- paste0("https://www.inaturalist.org/taxa/", row$taxon_id)
-      photo_url <- row$photo_url
-      count_fmt <- format(row$count, big.mark = ",")
+    # Preserve sidebar order: use choices_named values (which are raw group names)
+    # filtered to only the selected groups, in that order
+    group_order <- choices_named[choices_named %in% df$iconic_taxon_name]
 
-      # Thumbnail or placeholder
-      show_detail_js <- sprintf(
-        "Shiny.setInputValue('show_detail', %s, {priority: 'event'})",
-        row$taxon_id
-      )
+    sections <- lapply(group_order, function(grp) {
+      grp_df <- df[df$iconic_taxon_name == grp, ]
+      label <- if (!is.na(group_labels[grp])) group_labels[[grp]] else grp
 
-      img_tag <- if (!is.na(photo_url)) {
-        tags$div(
-          style = "cursor:pointer;",
-          onclick = show_detail_js,
-          tags$img(
-            src = photo_url,
-            style = "width:100%; height:150px; object-fit:cover; border-radius:4px 4px 0 0;",
-            alt = row$common_name
-          )
+      cards <- lapply(seq_len(nrow(grp_df)), function(i) {
+        row <- grp_df[i, ]
+        inat_url <- paste0("https://www.inaturalist.org/taxa/", row$taxon_id)
+        photo_url <- row$photo_url
+        count_fmt <- format(row$count, big.mark = ",")
+
+        show_detail_js <- sprintf(
+          "Shiny.setInputValue('show_detail', %s, {priority: 'event'})",
+          row$taxon_id
         )
-      } else {
-        tags$div(
-          style = paste0(
-            "width:100%; height:150px; background:#e9ecef; border-radius:4px 4px 0 0;",
-            "display:flex; align-items:center; justify-content:center; color:#adb5bd;",
-            "cursor:pointer;"
-          ),
-          onclick = show_detail_js,
-          "No image"
-        )
-      }
 
-      card(
-        full_screen = FALSE,
-        style = "padding: 0; overflow: hidden;",
-        img_tag,
-        card_body(
-          style = "padding: 10px;",
-          tags$span(
-            style = "font-weight:600; cursor:pointer;",
-            onclick = show_detail_js,
-            row$common_name %||% row$scientific_name
-          ),
-          tags$br(),
-          tags$em(
-            style = "color:#6c757d; font-size:0.85em;",
-            row$scientific_name
-          ),
-          tags$a(
-            href = inat_url,
-            target = "_blank",
-            style = "font-size:0.78em; color:#6c757d; text-decoration:none;",
-            "iNaturalist \u2197"
-          ),
-          tags$br(),
-          tags$span(
-            class = "badge bg-secondary mt-1",
+        img_tag <- if (!is.na(photo_url)) {
+          tags$div(
             style = "cursor:pointer;",
             onclick = show_detail_js,
-            paste0(count_fmt, " observations")
+            tags$img(
+              src = photo_url,
+              style = "width:100%; height:150px; object-fit:cover; border-radius:4px 4px 0 0;",
+              alt = row$common_name
+            )
+          )
+        } else {
+          tags$div(
+            style = paste0(
+              "width:100%; height:150px; background:#e9ecef; border-radius:4px 4px 0 0;",
+              "display:flex; align-items:center; justify-content:center; color:#adb5bd;",
+              "cursor:pointer;"
+            ),
+            onclick = show_detail_js,
+            "No image"
+          )
+        }
+
+        card(
+          full_screen = FALSE,
+          style = "padding: 0; overflow: hidden;",
+          img_tag,
+          card_body(
+            style = "padding: 10px;",
+            tags$span(
+              style = "font-weight:600; cursor:pointer;",
+              onclick = show_detail_js,
+              row$common_name %||% row$scientific_name
+            ),
+            tags$br(),
+            tags$em(
+              style = "color:#6c757d; font-size:0.85em;",
+              row$scientific_name
+            ),
+            tags$a(
+              href = inat_url,
+              target = "_blank",
+              style = "font-size:0.78em; color:#6c757d; text-decoration:none;",
+              "View on iNaturalist \u2197"
+            ),
+            tags$br(),
+            tags$span(
+              class = "badge bg-secondary mt-1",
+              style = "cursor:pointer;",
+              onclick = show_detail_js,
+              paste0(count_fmt, " observations")
+            )
           )
         )
+      })
+
+      tagList(
+        h4(label, style = "margin-top: 1.2em; margin-bottom: 0.5em;"),
+        layout_column_wrap(width = "200px", !!!cards)
       )
     })
 
-    layout_column_wrap(width = "200px", !!!cards)
+    tagList(!!!sections)
   })
 }
 
