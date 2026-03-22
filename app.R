@@ -6,8 +6,6 @@ library(cachem)
 library(httr2)
 library(ggplot2)
 
-functions <- list.files("R", full.names = TRUE)
-lapply(functions, source)
 
 # ââ Data prep (runs once at startup) âââââââââââââââââââââââââââââââââââââââââ
 
@@ -113,7 +111,7 @@ fetch_taxon_info <- function(taxon_id) {
       ))
       if (length(body$results) == 0) {
         return(list(
-          photo_url = get_taxon_photo_fallback(taxon_id),
+          photo_url = NA_character_
           wikipedia_url = NA_character_
         ))
       }
