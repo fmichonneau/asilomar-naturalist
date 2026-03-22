@@ -75,7 +75,6 @@ addResourcePath("taxon_images", img_dir)
 db_path <- "taxon_cache.duckdb"
 
 if (file.exists(db_path)) {
-  # Ã¢Ã¢ Path 1: restore images from DuckDB Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢
   message("Loading taxon cache from DuckDB ...")
   con <- dbConnect(duckdb(), db_path, read_only = TRUE)
   cache_df <- dbGetQuery(
@@ -89,7 +88,7 @@ if (file.exists(db_path)) {
     key <- as.character(cache_df$taxon_id[[i]])
     img_path <- file.path(img_dir, paste0(key, ".jpg"))
     blob <- cache_df$image_blob[[i]] # raw vector from DuckDB BLOB column
-    if (!file.exists(img_path) && length(blob) > 0) {
+    if (length(blob) > 0) {
       writeBin(blob, img_path)
     }
   }
@@ -120,113 +119,26 @@ if (file.exists(db_path)) {
     }
   }
 
+  # Attach photo_url and wikipedia_url columns to top100
+  lookup_df <- data.frame(
+    taxon_id = as.integer(names(taxon_info_lookup)),
+    photo_url = vapply(taxon_info_lookup, `[[`, character(1), "photo_url"),
+    wikipedia_url = vapply(
+      taxon_info_lookup,
+      `[[`,
+      character(1),
+      "wikipedia_url"
+    ),
+    stringsAsFactors = FALSE
+  )
+  top100 <- left_join(top100, lookup_df, by = "taxon_id")
+
   message("DuckDB cache loaded: ", nrow(cache_df), " taxa.")
+  rm(cache_df)
 } else {
-  # Ã¢Ã¢ Path 2: cachem + iNaturalist API (local dev / first run) Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢Ã¢
   message("No DuckDB cache found Ã¢ using cachem + API fallback.")
-
-  img_url_cache <- cachem::cache_disk("img_cache_url", max_age = 90 * 24 * 3600)
-  wiki_cache <- cachem::cache_disk("wiki_cache", max_age = 90 * 24 * 3600)
-
-  fetch_taxon_info <- function(taxon_id) {
-    cli::cli_alert_info("Fetching image for taxon_id {taxon_id} ...")
-    key <- as.character(taxon_id)
-    img_path <- file.path(img_dir, paste0(key, ".jpg"))
-
-    cached_url <- img_url_cache$get(key)
-    cached_wiki <- wiki_cache$get(key)
-
-    if (
-      !cachem::is.key_missing(cached_url) &&
-        file.exists(img_path) &&
-        !cachem::is.key_missing(cached_wiki)
-    ) {
-      cli::cli_alert_success("Cache hit for taxon_id {taxon_id}")
-      return(list(
-        photo_url = paste0("taxon_images/", key, ".jpg"),
-        wikipedia_url = cached_wiki
-      ))
-    }
-
-    result <- tryCatch(
-      {
-        resp <- request(paste0(
-          "https://api.inaturalist.org/v1/taxa/",
-          taxon_id
-        )) |>
-          req_throttle(capacity = 50, fill_time_s = 60) |>
-          req_retry(
-            max_tries = 5,
-            is_transient = \(resp) resp_status(resp) %in% c(429, 503),
-            backoff = \(i) min(2^i, 60)
-          ) |>
-          req_perform()
-        body <- resp_body_json(resp)
-        cli::cli_alert_success("Fetched taxon info for taxon_id {taxon_id}")
-
-        if (length(body$results) == 0) {
-          return(list(photo_url = NA_character_, wikipedia_url = NA_character_))
-        }
-        taxon <- body$results[[1]]
-        photo <- taxon$default_photo
-        photo_url <- if (!is.null(photo$medium_url)) {
-          photo$medium_url
-        } else if (!is.null(photo$square_url)) {
-          photo$square_url
-        } else {
-          NA_character_
-        }
-        list(
-          photo_url = photo_url,
-          wikipedia_url = taxon$wikipedia_url %||% NA_character_
-        )
-      },
-      error = function(e) {
-        cli::cli_alert_warning(
-          "Error fetching taxon info for taxon_id {taxon_id}: {conditionMessage(e)}"
-        )
-        list(photo_url = NA_character_, wikipedia_url = NA_character_)
-      }
-    )
-
-    local_url <- if (!is.na(result$photo_url)) {
-      tryCatch(
-        {
-          download.file(result$photo_url, img_path, quiet = TRUE, mode = "wb")
-          paste0("taxon_images/", key, ".jpg")
-        },
-        error = function(e) {
-          cli::cli_alert_warning(
-            "Failed to download image for taxon_id {taxon_id}: {e$message}"
-          )
-          NA_character_
-        }
-      )
-    } else {
-      cli::cli_alert_warning("No image found for taxon_id {taxon_id}")
-      NA_character_
-    }
-
-    img_url_cache$set(key, result$photo_url)
-    wiki_cache$set(key, result$wikipedia_url)
-
-    list(photo_url = local_url, wikipedia_url = result$wikipedia_url)
-  }
-
-  message("Fetching taxon images (cached after first run)...")
+  cli::cli_abort("upload DuckDB cache first.")
 }
-
-# Pre-populate top100$photo_url and top100$wikipedia_url at startup
-top100$photo_url <- vapply(
-  top100$taxon_id,
-  function(id) fetch_taxon_info(id)$photo_url,
-  character(1)
-)
-top100$wikipedia_url <- vapply(
-  top100$taxon_id,
-  function(id) fetch_taxon_info(id)$wikipedia_url,
-  character(1)
-)
 message("Images ready.")
 
 # ââ UI ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
@@ -237,7 +149,7 @@ ui <- page_sidebar(
 
   sidebar = sidebar(
     width = 280,
-    h6("Taxonomic Group"),
+    h6("Taxonomic Group (number of taxa)"),
     tags$div(
       style = "margin-bottom: 6px; font-size: 0.85em;",
       actionLink("select_all", "Select all"),
@@ -248,7 +160,7 @@ ui <- page_sidebar(
       "groups",
       label = NULL,
       choices = choices_named,
-      selected = raw_groups
+      selected = c("Animalia", "Mollusca")
     ),
     hr(),
     uiOutput("species_count")
