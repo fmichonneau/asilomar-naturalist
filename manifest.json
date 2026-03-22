@@ -648,6 +648,47 @@
         "RemoteSha": "1.2.0"
       }
     },
+    "duckdb": {
+      "Source": "PPM",
+      "Repository": "https://p3m.dev/cran/latest",
+      "description": {
+        "Package": "duckdb",
+        "Title": "DBI Package for the DuckDB Database Management System",
+        "Version": "1.5.0",
+        "Authors@R": "c(\n    person(\"Hannes\", \"Mühleisen\", , \"hannes@cwi.nl\", role = \"aut\",\n           comment = c(ORCID = \"0000-0001-8552-0029\")),\n    person(\"Mark\", \"Raasveldt\", , \"mark.raasveldt@cwi.nl\", role = \"aut\",\n           comment = c(ORCID = \"0000-0001-5005-6844\")),\n    person(\"Kirill\", \"Müller\", , \"kirill@cynkra.com\", role = \"cre\",\n           comment = c(ORCID = \"0000-0002-1416-3412\")),\n    person(\"Stichting DuckDB Foundation\", role = \"cph\"),\n    person(\"Apache Software Foundation\", role = \"cph\"),\n    person(\"PostgreSQL Global Development Group\", role = \"cph\"),\n    person(\"The Regents of the University of California\", role = \"cph\"),\n    person(\"Cameron Desrochers\", role = \"cph\"),\n    person(\"Victor Zverovich\", role = \"cph\"),\n    person(\"RAD Game Tools\", role = \"cph\"),\n    person(\"Valve Software\", role = \"cph\"),\n    person(\"Rich Geldreich\", role = \"cph\"),\n    person(\"Tenacious Software LLC\", role = \"cph\"),\n    person(\"The RE2 Authors\", role = \"cph\"),\n    person(\"Google Inc.\", role = \"cph\"),\n    person(\"Facebook Inc.\", role = \"cph\"),\n    person(\"Steven G. Johnson\", role = \"cph\"),\n    person(\"Jiahao Chen\", role = \"cph\"),\n    person(\"Tony Kelman\", role = \"cph\"),\n    person(\"Jonas Fonseca\", role = \"cph\"),\n    person(\"Lukas Fittl\", role = \"cph\"),\n    person(\"Salvatore Sanfilippo\", role = \"cph\"),\n    person(\"Art.sy, Inc.\", role = \"cph\"),\n    person(\"Oran Agra\", role = \"cph\"),\n    person(\"Redis Labs, Inc.\", role = \"cph\"),\n    person(\"Melissa O'Neill\", role = \"cph\"),\n    person(\"PCG Project contributors\", role = \"cph\")\n  )",
+        "Description": "The DuckDB project is an embedded analytical data management\n    system with support for the Structured Query Language (SQL). This\n    package includes all of DuckDB and an R Database Interface (DBI)\n    connector.",
+        "License": "MIT + file LICENSE",
+        "URL": "https://r.duckdb.org/, https://github.com/duckdb/duckdb-r",
+        "BugReports": "https://github.com/duckdb/duckdb-r/issues",
+        "Depends": "DBI, R (>= 4.1.0)",
+        "Imports": "methods, utils",
+        "Suggests": "adbcdrivermanager, arrow (>= 13.0.0), bit64, callr, clock,\nDBItest, dbplyr, dplyr, rlang, testthat (>= 3.0.0), tibble,\nvctrs, withr",
+        "Biarch": "true",
+        "Config/build/compilation-database": "false",
+        "Config/build/never-clean": "true",
+        "Config/comment/compilation-database": "Generate manually with\npkgload:::generate_db() for faster pkgload::load_all()",
+        "Config/gha/extra-packages": "arrow=?ignore-before-r=4.2.0\nadbcdrivermanager=?ignore-before-r=4.2.0",
+        "Config/gha/filter": "os != \"windows-latest\" | r != \"4.1\"",
+        "Config/gha/filter-note": "Inexplicable build failures on Windows GHA with\nR 4.1, works locally",
+        "Config/testthat/edition": "3",
+        "Encoding": "UTF-8",
+        "RoxygenNote": "7.3.3.9000",
+        "SystemRequirements": "xz (for building from source)",
+        "NeedsCompilation": "yes",
+        "Packaged": "2026-03-12 11:02:45 UTC; kirill",
+        "Author": "Hannes Mühleisen [aut] (ORCID: <https://orcid.org/0000-0001-8552-0029>),\n  Mark Raasveldt [aut] (ORCID: <https://orcid.org/0000-0001-5005-6844>),\n  Kirill Müller [cre] (ORCID: <https://orcid.org/0000-0002-1416-3412>),\n  Stichting DuckDB Foundation [cph],\n  Apache Software Foundation [cph],\n  PostgreSQL Global Development Group [cph],\n  The Regents of the University of California [cph],\n  Cameron Desrochers [cph],\n  Victor Zverovich [cph],\n  RAD Game Tools [cph],\n  Valve Software [cph],\n  Rich Geldreich [cph],\n  Tenacious Software LLC [cph],\n  The RE2 Authors [cph],\n  Google Inc. [cph],\n  Facebook Inc. [cph],\n  Steven G. Johnson [cph],\n  Jiahao Chen [cph],\n  Tony Kelman [cph],\n  Jonas Fonseca [cph],\n  Lukas Fittl [cph],\n  Salvatore Sanfilippo [cph],\n  Art.sy, Inc. [cph],\n  Oran Agra [cph],\n  Redis Labs, Inc. [cph],\n  Melissa O'Neill [cph],\n  PCG Project contributors [cph]",
+        "Maintainer": "Kirill Müller <kirill@cynkra.com>",
+        "Repository": "RSPM",
+        "Date/Publication": "2026-03-14 16:40:21 UTC",
+        "Built": "R 4.5.0; x86_64-pc-linux-gnu; 2026-03-15 06:37:36 UTC; unix",
+        "RemoteType": "standard",
+        "RemotePkgRef": "duckdb",
+        "RemoteRef": "duckdb",
+        "RemoteRepos": "https://p3m.dev/cran/latest",
+        "RemotePkgPlatform": "aarch64-apple-darwin20",
+        "RemoteSha": "1.5.0"
+      }
+    },
     "e1071": {
       "Source": "PPM",
       "Repository": "https://p3m.dev/cran/latest",
@@ -2486,7 +2527,7 @@
   },
   "files": {
     ".Rprofile": {
-      "checksum": "df3c79192236af7cf7e3847c38f5b147"
+      "checksum": "83c49f39dcc4a10c69d0506d882ceb41"
     },
     "2023_mry_data.parquet": {
       "checksum": "d87794c1261ab2cb99204e468b2972f1"
@@ -2501,7 +2542,10 @@
       "checksum": "9f029920a23a8daa4fb8a3fe3933155b"
     },
     "app.R": {
-      "checksum": "c80716b89d2b31cf45e3470ace195ef5"
+      "checksum": "7b4ecedb0fe6a62a421282477eb24fec"
+    },
+    "build_cache.R": {
+      "checksum": "ba43f155aeac4fe6d37432f247399129"
     },
     "combined_mry_data.parquet": {
       "checksum": "ac0688402b84fe365901cf69dfe09a77"
@@ -2523,6 +2567,15 @@
     },
     "image_cache_files/117538.jpg": {
       "checksum": "001933684bd1e00dbeea55ea95a5a0c1"
+    },
+    "image_cache_files/117549.jpg": {
+      "checksum": "b87d963e99076b96800e21e598c35b7d"
+    },
+    "image_cache_files/117550.jpg": {
+      "checksum": "373f2817890cd578125cce0af3c56efc"
+    },
+    "image_cache_files/117555.jpg": {
+      "checksum": "7dd8fd794571a8c60a19ecea432cd0e0"
     },
     "image_cache_files/117559.jpg": {
       "checksum": "b1dea1d3026e627944d75bd38b7122d3"
@@ -2710,6 +2763,9 @@
     "image_cache_files/48450.jpg": {
       "checksum": "74b7207f270c77ee1aa80c2eeca43774"
     },
+    "image_cache_files/48452.jpg": {
+      "checksum": "c6d769fbd02cff9d88d5f45d0e2980b4"
+    },
     "image_cache_files/48549.jpg": {
       "checksum": "1e566e71a8b5453e5e6154b12ed63ec8"
     },
@@ -2742,6 +2798,9 @@
     },
     "image_cache_files/49578.jpg": {
       "checksum": "410977d48ab1074f2eb540b25af92a47"
+    },
+    "image_cache_files/49601.jpg": {
+      "checksum": "5b23ec17c7856765f27d695824928aa6"
     },
     "image_cache_files/49699.jpg": {
       "checksum": "d733caaaae9788b87825fb5808bba5ac"
@@ -2821,6 +2880,18 @@
     "image_cache_files/63538.jpg": {
       "checksum": "597055867a982c9b921560a410fc18fe"
     },
+    "image_cache_files/63770.jpg": {
+      "checksum": "fc739331f7d1f03723f14593fa7a2da5"
+    },
+    "image_cache_files/64446.jpg": {
+      "checksum": "93ace639865ae7bfcea92917bc1f28fe"
+    },
+    "image_cache_files/64449.jpg": {
+      "checksum": "5575a30e18418b153c6706cbda9c7839"
+    },
+    "image_cache_files/67316.jpg": {
+      "checksum": "7f07e38c32a445e65afdb0f0e6750488"
+    },
     "image_cache_files/67328.jpg": {
       "checksum": "26d2f703e75f75f74990d8078ff2e843"
     },
@@ -2839,6 +2910,9 @@
     "image_cache_files/69155.jpg": {
       "checksum": "95ddfde7c6a7207224d736998b7b33f4"
     },
+    "image_cache_files/69856.jpg": {
+      "checksum": "b23e2f2c21a06a359ba9b21ab507f8e7"
+    },
     "image_cache_files/75668.jpg": {
       "checksum": "7fe03b01ce4880d908101bb880401f9f"
     },
@@ -2848,8 +2922,14 @@
     "image_cache_files/81896.jpg": {
       "checksum": "19de8c90524869c068eed698c0f9e4b2"
     },
+    "image_cache_files/81963.jpg": {
+      "checksum": "57abfee24de2e0b646b817a7e057d6f2"
+    },
     "image_cache_files/9176.jpg": {
       "checksum": "fa995af46e6fb91882d14151e6d58e71"
+    },
+    "image_cache_files/97984.jpg": {
+      "checksum": "c1295f9a39c88657dcb914f538b6f388"
     },
     "image_cache_url/1006828.rds": {
       "checksum": "1c38334523a349e934564bdffce489f7"
@@ -4804,6 +4884,15 @@
     "img_cache_url/117538.rds": {
       "checksum": "ed09fac5cedb813fd20db4d5f3cdeb64"
     },
+    "img_cache_url/117549.rds": {
+      "checksum": "6decef8fc934c556e243801dcf10c829"
+    },
+    "img_cache_url/117550.rds": {
+      "checksum": "4339e08f1ff44225d31d03bb719e136d"
+    },
+    "img_cache_url/117555.rds": {
+      "checksum": "a03d3977529da6b4c2fa4f4edb0d5647"
+    },
     "img_cache_url/117559.rds": {
       "checksum": "ea04aa9f387f3df6e1b884ae7a7b194b"
     },
@@ -4990,6 +5079,9 @@
     "img_cache_url/48450.rds": {
       "checksum": "0cea67ce9146c2cce725d3b959d7bfe8"
     },
+    "img_cache_url/48452.rds": {
+      "checksum": "1f5aafd1a4b84b08477f236f9623e35d"
+    },
     "img_cache_url/48549.rds": {
       "checksum": "0e59c5fefdf87b9ce2398a4cb2843906"
     },
@@ -5022,6 +5114,9 @@
     },
     "img_cache_url/49578.rds": {
       "checksum": "7eaba2293d6f3be0e0a5418f3efa7fc6"
+    },
+    "img_cache_url/49601.rds": {
+      "checksum": "e07a038ee2dd367d8ff1a97057f29b0a"
     },
     "img_cache_url/49699.rds": {
       "checksum": "b095ccf96842dfbb979048b4dd69a2a8"
@@ -5101,6 +5196,18 @@
     "img_cache_url/63538.rds": {
       "checksum": "ac8cdbc2c9c30900dbb9e7a15d8c4620"
     },
+    "img_cache_url/63770.rds": {
+      "checksum": "7105a75d223564f7a2acb303f6bb8bb0"
+    },
+    "img_cache_url/64446.rds": {
+      "checksum": "d6f314efd114571aead40e7482fcadba"
+    },
+    "img_cache_url/64449.rds": {
+      "checksum": "d43990b784c61394ee0a95c727c2e957"
+    },
+    "img_cache_url/67316.rds": {
+      "checksum": "61b1177d0091867cb36c87baa8adee0d"
+    },
     "img_cache_url/67328.rds": {
       "checksum": "42e4f780488625aaa1dbdc03351bb10c"
     },
@@ -5119,6 +5226,9 @@
     "img_cache_url/69155.rds": {
       "checksum": "89c0466235421afeac994534b6c416de"
     },
+    "img_cache_url/69856.rds": {
+      "checksum": "ee3d607e4acef92cf0709924cd7ce04c"
+    },
     "img_cache_url/75668.rds": {
       "checksum": "cff0a5000f8f4088fcf8462497f05cfa"
     },
@@ -5128,14 +5238,23 @@
     "img_cache_url/81896.rds": {
       "checksum": "21ac3c40cbbb904a87e1865c26f4c9eb"
     },
+    "img_cache_url/81963.rds": {
+      "checksum": "c9c274fef619098eb809cb7abc760ec8"
+    },
     "img_cache_url/9176.rds": {
       "checksum": "8e4978e04d6f0a34b5d001a5735788fd"
+    },
+    "img_cache_url/97984.rds": {
+      "checksum": "04c44ac43a3c36876ffec1fe2b166c41"
     },
     "plan-speciesExplorer.prompt.md": {
       "checksum": "eb49150f1c9c64360afda107613a15c5"
     },
     "renv.lock": {
-      "checksum": "f069d9dfd40ee772c9340c100550cfeb"
+      "checksum": "58aad355535c4a184f00211de72e0cf4"
+    },
+    "taxon_cache.duckdb": {
+      "checksum": "d40a40a17660c6642f799dbd76f1a6de"
     },
     "untitled:plan-speciesExplorer.prompt.md": {
       "checksum": "de9724d61b5e3a1346535215401e8e56"
@@ -7067,7 +7186,7 @@
       "checksum": "1dbd933eaba55e8f5ae943aa9a1f0922"
     },
     "wiki_cache/97984.rds": {
-      "checksum": "e26c574a70d6ec011e5c46c423b5c437"
+      "checksum": "04c44ac43a3c36876ffec1fe2b166c41"
     },
     "wiki_cache/991889.rds": {
       "checksum": "21b2d9b11005d0bdc2d8d8bcc4bb9734"
