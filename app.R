@@ -18,11 +18,11 @@ taxa_table <- combined_data |>
   select(scientific_name, taxon_id, common_name, iconic_taxon_name) |>
   distinct()
 
-# Top 100 per taxonomic group
-top100 <- combined_data |>
+# Top 45 per taxonomic group
+top45 <- combined_data |>
   group_by(iconic_taxon_name, scientific_name) |>
   summarise(count = n(), .groups = "drop") |>
-  slice_max(count, n = 100, by = iconic_taxon_name) |>
+  slice_max(count, n = 45, by = iconic_taxon_name) |>
   left_join(taxa_table, by = c("scientific_name", "iconic_taxon_name")) |>
   select(scientific_name, common_name, iconic_taxon_name, taxon_id, count) |>
   arrange(iconic_taxon_name, desc(count))
@@ -40,7 +40,7 @@ group_labels <- c(
 )
 
 # Count taxa per group, ordered descending
-group_counts <- top100 |>
+group_counts <- top45 |>
   count(iconic_taxon_name, name = "n_taxa") |>
   arrange(desc(n_taxa))
 
@@ -119,7 +119,7 @@ if (file.exists(db_path)) {
     }
   }
 
-  # Attach photo_url and wikipedia_url columns to top100
+  # Attach photo_url and wikipedia_url columns to top45
   lookup_df <- data.frame(
     taxon_id = as.integer(names(taxon_info_lookup)),
     photo_url = vapply(taxon_info_lookup, `[[`, character(1), "photo_url"),
@@ -131,7 +131,7 @@ if (file.exists(db_path)) {
     ),
     stringsAsFactors = FALSE
   )
-  top100 <- left_join(top100, lookup_df, by = "taxon_id")
+  top45 <- left_join(top45, lookup_df, by = "taxon_id")
 
   message("DuckDB cache loaded: ", nrow(cache_df), " taxa.")
   rm(cache_df)
@@ -183,7 +183,7 @@ server <- function(input, output, session) {
   # Reactive filtered data
   filtered <- reactive({
     req(input$groups)
-    top100 |> filter(iconic_taxon_name %in% input$groups)
+    top45 |> filter(iconic_taxon_name %in% input$groups)
   })
 
   # Species count sub-header
@@ -204,7 +204,7 @@ server <- function(input, output, session) {
     input$show_detail,
     {
       req(input$show_detail)
-      row <- top100[top100$taxon_id == input$show_detail, ][1, ]
+      row <- top45[top45$taxon_id == input$show_detail, ][1, ]
       selected_species(row)
 
       obs <- combined_data |>
