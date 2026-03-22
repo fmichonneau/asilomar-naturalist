@@ -18,11 +18,10 @@ taxa_table <- combined_data |>
   distinct()
 
 # Top 100 per taxonomic group
-# TODO: update to 100 after testing
 top100 <- combined_data |>
   group_by(iconic_taxon_name, scientific_name) |>
   summarise(count = n(), .groups = "drop") |>
-  slice_max(count, n = 10, by = iconic_taxon_name) |>
+  slice_max(count, n = 100, by = iconic_taxon_name) |>
   left_join(taxa_table, by = c("scientific_name", "iconic_taxon_name")) |>
   select(scientific_name, common_name, iconic_taxon_name, taxon_id, count) |>
   arrange(iconic_taxon_name, desc(count))
