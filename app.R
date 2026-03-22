@@ -6,6 +6,9 @@ library(cachem)
 library(httr2)
 library(ggplot2)
 
+functions <- list.files("R", full.names = TRUE)
+lapply(functions, source)
+
 # ââ Data prep (runs once at startup) âââââââââââââââââââââââââââââââââââââââââ
 
 combined_data <- nanoparquet::read_parquet("combined_mry_data.parquet") |>
@@ -17,10 +20,11 @@ taxa_table <- combined_data |>
   distinct()
 
 # Top 100 per taxonomic group
+# TODO: update to 100 after testing
 top100 <- combined_data |>
   group_by(iconic_taxon_name, scientific_name) |>
   summarise(count = n(), .groups = "drop") |>
-  slice_max(count, n = 100, by = iconic_taxon_name) |>
+  slice_max(count, n = 10, by = iconic_taxon_name) |>
   left_join(taxa_table, by = c("scientific_name", "iconic_taxon_name")) |>
   select(scientific_name, common_name, iconic_taxon_name, taxon_id, count) |>
   arrange(iconic_taxon_name, desc(count))
@@ -59,33 +63,59 @@ choices_named <- setNames(
 
 # ââ Image cache (disk, survives restarts) âââââââââââââââââââââââââââââââââââââ
 
-img_cache <- cachem::cache_disk("image_cache")
-wiki_cache <- cachem::cache_disk("wiki_cache")
+img_dir <- "image_cache_files"
+dir.create(img_dir, showWarnings = FALSE)
+addResourcePath("taxon_images", img_dir)
+
+# Stores iNaturalist photo URLs; expires after 90 days to refresh from API
+img_url_cache <- cachem::cache_disk("img_cache_url", max_age = 90 * 24 * 3600)
+wiki_cache <- cachem::cache_disk("wiki_cache", max_age = 90 * 24 * 3600)
 
 fetch_taxon_info <- function(taxon_id) {
   cli::cli_alert_info(paste0("Fetching image for taxon_id ", taxon_id, " ..."))
   key <- as.character(taxon_id)
+  img_path <- file.path(img_dir, paste0(key, ".jpg"))
 
-  img_cached <- img_cache$get(key)
-  wiki_cached <- wiki_cache$get(key)
+  cached_url <- img_url_cache$get(key)
+  cached_wiki <- wiki_cache$get(key)
 
-  if (!is.key_missing(img_cached) && !is.key_missing(wiki_cached)) {
+  # Full cache hit: URL not expired AND file already downloaded
+  if (
+    !cachem::is.key_missing(cached_url) &&
+      file.exists(img_path) &&
+      !cachem::is.key_missing(cached_wiki)
+  ) {
     cli::cli_alert_success(paste0("Cache hit for taxon_id ", taxon_id))
-    return(list(photo_url = img_cached, wikipedia_url = wiki_cached))
+    return(list(
+      photo_url = paste0("taxon_images/", key, ".jpg"),
+      wikipedia_url = cached_wiki
+    ))
   }
 
+  # Fetch fresh data from iNaturalist API
   result <- tryCatch(
     {
       resp <- request(paste0(
         "https://api.inaturalist.org/v1/taxa/",
         taxon_id
       )) |>
-        req_timeout(10) |>
+        req_throttle(capacity = 50, fill_time_s = 60) |>
+        req_retry(
+          max_tries = 5,
+          is_transient = \(resp) resp_status(resp) %in% c(429, 503),
+          backoff = \(i) min(2^i, 60)
+        ) |>
         req_perform()
       body <- resp_body_json(resp)
-      cli::cli_alert_success(paste0("Fetched image for taxon_id ", taxon_id))
+      cli::cli_alert_success(paste0(
+        "Fetched taxon info for taxon_id ",
+        taxon_id
+      ))
       if (length(body$results) == 0) {
-        return(list(photo_url = NA_character_, wikipedia_url = NA_character_))
+        return(list(
+          photo_url = get_taxon_photo_fallback(taxon_id),
+          wikipedia_url = NA_character_
+        ))
       }
       taxon <- body$results[[1]]
       photo <- taxon$default_photo
@@ -96,62 +126,49 @@ fetch_taxon_info <- function(taxon_id) {
       } else {
         NA_character_
       }
-      # Fallback: if no taxon thumbnail, try the observations API
-      if (is.na(photo_url)) {
-        cli::cli_alert_info(paste0(
-          "No taxon photo for ",
-          taxon_id,
-          ", trying observations..."
-        ))
-        obs_resp <- tryCatch(
-          request("https://api.inaturalist.org/v1/observations") |>
-            req_url_query(
-              taxon_id = taxon_id,
-              photos = "true",
-              quality_grade = "research",
-              order_by = "votes",
-              per_page = 1L
-            ) |>
-            req_timeout(10) |>
-            req_perform(),
-          error = function(e) NULL
-        )
-        if (!is.null(obs_resp)) {
-          obs_body <- resp_body_json(obs_resp)
-          obs_photo <- tryCatch(
-            obs_body$results[[1]]$photos[[1]]$url,
-            error = function(e) NULL
-          )
-          if (!is.null(obs_photo)) {
-            # iNat observation photo URLs use "square" size; upgrade to "medium"
-            photo_url <- sub("/square\\.", "/medium.", obs_photo)
-            cli::cli_alert_success(paste0(
-              "Got observation photo for taxon_id ",
-              taxon_id
-            ))
-          }
-        }
-      }
-
-      wikipedia_url <- taxon$wikipedia_url %||% NA_character_
-      list(photo_url = photo_url, wikipedia_url = wikipedia_url)
+      list(
+        photo_url = photo_url,
+        wikipedia_url = taxon$wikipedia_url %||% NA_character_
+      )
     },
     error = function(e) {
+      cli::cli_alert_warning(paste0(
+        "Error fetching taxon info for taxon_id ",
+        taxon_id,
+        ": ",
+        conditionMessage(e)
+      ))
       list(photo_url = NA_character_, wikipedia_url = NA_character_)
     }
   )
 
-  img_cache$set(key, result$photo_url)
+  # Download image to local cache
+  local_url <- if (!is.na(result$photo_url)) {
+    tryCatch(
+      {
+        download.file(result$photo_url, img_path, quiet = TRUE, mode = "wb")
+        paste0("taxon_images/", key, ".jpg")
+      },
+      error = function(e) {
+        cli::cli_alert_warning(paste0(
+          "Failed to download image for taxon_id ",
+          taxon_id,
+          ": ",
+          e$message
+        ))
+        NA_character_
+      }
+    )
+  } else {
+    cli::cli_alert_warning(paste0("No image found for taxon_id ", taxon_id))
+    NA_character_
+  }
+
+  # Cache the URL and wiki link for next time
+  img_url_cache$set(key, result$photo_url)
   wiki_cache$set(key, result$wikipedia_url)
-  result
-}
 
-fetch_taxon_photo <- function(taxon_id) {
-  fetch_taxon_info(taxon_id)$photo_url
-}
-
-fetch_taxon_wiki <- function(taxon_id) {
-  fetch_taxon_info(taxon_id)$wikipedia_url
+  list(photo_url = local_url, wikipedia_url = result$wikipedia_url)
 }
 
 # Pre-fetch all image URLs at startup
