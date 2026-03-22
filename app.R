@@ -170,7 +170,7 @@ fetch_taxon_info <- function(taxon_id) {
 
 # Pre-fetch all image URLs at startup
 message("Fetching taxon images (cached after first run)...")
-top100$photo_url <- vapply(top100$taxon_id, fetch_taxon_info, character(1))
+top100$photo_url <- lapply(top100$taxon_id, fetch_taxon_info)
 message("Images ready.")
 
 # ââ UI ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
