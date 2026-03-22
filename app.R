@@ -57,6 +57,7 @@ choices_named <- setNames(
     character(1)
   )
 )
+raw_groups <- unname(choices_named)
 
 # ââ Image cache (disk, survives restarts) âââââââââââââââââââââââââââââââââââââ
 
